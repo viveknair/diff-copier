@@ -1,4 +1,4 @@
-# Diff Copier
+### Diff Copier
 
 This Chrome extension adds a "Copy as Markdown" button to GitHub Pull Request pages. Clicking this button, or pressing `Cmd+C` twice quickly (when no text is selected), fetches the diff content of the PR and copies it to the user's clipboard in Markdown format.
 
