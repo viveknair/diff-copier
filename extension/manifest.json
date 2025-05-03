@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Diff Copier",
+  "version": "1.0",
+  "description": "Adds a button to GitHub PR pages to copy the diff as Markdown.",
+  "permissions": ["clipboardWrite"],
+  "host_permissions": ["https://patch-diff.githubusercontent.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/*/pull/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
