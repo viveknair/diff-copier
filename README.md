@@ -4,6 +4,11 @@ This Chrome extension adds a "Copy as Markdown" button to GitHub Pull Request pa
 
 > **Warning:** This extension fetches the PR content by accessing the `.diff` URL provided by GitHub. Frequent use, especially on large repositories or across many PRs in a short period, may lead to hitting GitHub's rate limits, resulting in temporary errors (like HTTP 429).
 
+![Screenshot showing the Copy diff as Markdown button on a GitHub PR page](images/main.png)
+
+_Button state after successful copy:_
+![Screenshot showing the button text changed to Copied!](images/copy.png)
+
 ## Features
 
 - Adds a "Copy as Markdown" button to the header actions on GitHub PR pages (`https://github.com/*/*/pull/*`).
