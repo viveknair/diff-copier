@@ -117,20 +117,111 @@ function addCopyDiffButton() {
   actionsContainer.insertBefore(button, actionsContainer.firstChild);
 }
 
+// Helper function to check if the current URL is a PR page
+function isPRPage() {
+  return /^(https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+)/.test(
+    window.location.href
+  );
+}
+
+// --- Copy Review Dog Errors Logic ---
+function copyReviewDogErrors() {
+  // Find all review dog error comments
+  const errorComments = document.querySelectorAll('.comment-body.markdown-body');
+  const errors = [];
+  
+  errorComments.forEach(comment => {
+    // Check if this is a review dog comment
+    const textContent = comment.textContent;
+    if (textContent.includes('[eslint]') && textContent.includes('reported by reviewdog')) {
+      // Extract the error message
+      const lines = textContent.split('\n').map(line => line.trim()).filter(line => line);
+      
+      // Find the rule name (e.g., @typescript-eslint/no-unused-vars)
+      const ruleMatch = textContent.match(/<([^>]+)>/);
+      const rule = ruleMatch ? ruleMatch[1] : 'unknown-rule';
+      
+      // The error message is typically on the last line before "reported by reviewdog"
+      const errorMessage = lines.find(line => !line.includes('[eslint]') && !line.includes('reported by reviewdog') && !line.includes('⚠️'));
+      
+      if (errorMessage) {
+        // Find the file path from the parent elements
+        const discussionElement = comment.closest('[id^="discussion_r"]');
+        if (discussionElement) {
+          // Try to find file path from nearby elements
+          const filePathElement = discussionElement.closest('.js-comment-container')?.querySelector('.Link--primary');
+          const filePath = filePathElement ? filePathElement.textContent : 'unknown-file';
+          
+          errors.push({
+            file: filePath,
+            rule: rule,
+            message: errorMessage
+          });
+        }
+      }
+    }
+  });
+  
+  if (errors.length === 0) {
+    console.log('No review dog errors found on this page');
+    return false;
+  }
+  
+  // Format errors as markdown
+  const markdown = `## Review Dog Errors (${errors.length} total)\n\n` +
+    errors.map((error, index) => 
+      `${index + 1}. **${error.file}**\n   - Rule: \`${error.rule}\`\n   - Error: ${error.message}`
+    ).join('\n\n');
+  
+  // Copy to clipboard
+  navigator.clipboard.writeText(markdown)
+    .then(() => {
+      console.log(`Copied ${errors.length} review dog errors to clipboard`);
+      
+      // Show temporary notification
+      const notification = document.createElement('div');
+      notification.textContent = `Copied ${errors.length} review dog errors!`;
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        z-index: 9999;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    })
+    .catch(err => {
+      console.error('Failed to copy review dog errors:', err);
+    });
+  
+  return true;
+}
+
 // --- Keyboard Shortcut Logic ---
 let lastCmdCPressTime = 0;
 const doublePressDelay = 500; // milliseconds
 
-document.addEventListener("keydown", (event) => {
+function handleKeyDown(event) {
+  // Only process if on a PR page
+  if (!isPRPage()) return;
+
   // Check for Cmd+C (or Ctrl+C on non-Mac)
   if (event.key === "c" && (event.metaKey || event.ctrlKey)) {
     const now = Date.now();
     if (now - lastCmdCPressTime < doublePressDelay) {
       // Double press detected
 
-      // *** Check if text is selected ***
+      // Check if text is selected
       if (window.getSelection().toString().length > 0) {
-        // If text is selected, reset the timer and allow default copy behavior
         lastCmdCPressTime = 0;
         return;
       }
@@ -141,8 +232,7 @@ document.addEventListener("keydown", (event) => {
           "Double Cmd+C detected (no selection), triggering copy action."
         );
         performCopyAction(button);
-        // Reset time to prevent triple press triggering immediately
-        lastCmdCPressTime = 0;
+        lastCmdCPressTime = 0; // Reset time
       } else if (!button) {
         console.warn("Double Cmd+C detected, but copy button not found.");
       }
@@ -150,27 +240,40 @@ document.addEventListener("keydown", (event) => {
       // First press, record time
       lastCmdCPressTime = now;
     }
-    // We don't preventDefault() here initially
+  } else if (event.key === "k" && (event.metaKey || event.ctrlKey) && event.shiftKey) {
+    // Cmd+Shift+K (or Ctrl+Shift+K) to copy review dog errors
+    event.preventDefault();
+    console.log("Cmd+Shift+K detected, copying review dog errors.");
+    copyReviewDogErrors();
   } else {
     // Reset time if other keys are pressed
     lastCmdCPressTime = 0;
   }
-});
+}
 
-// Initial attempt to add the button when the script first runs
-addCopyDiffButton();
+// --- Initialization and Observation ---
+
+// Check if we are on a PR page initially
+if (isPRPage()) {
+  addCopyDiffButton();
+}
 
 // Observe changes in the page structure
 const observer = new MutationObserver((mutationsList, observer) => {
-  // Check if the target container exists and our button doesn't,
-  // indicating a navigation event likely occurred.
+  // Check if we navigated to a PR page and the button isn't there
   if (
+    isPRPage() &&
     document.querySelector(".gh-header-actions") &&
     !document.getElementById("copy-pr-markdown-button")
   ) {
-    addCopyDiffButton(); // Re-run the button adding logic
+    addCopyDiffButton(); // Add the button if we are on a PR page
   }
+  // Optional: Could add logic here to *remove* the button if navigating *away* from a PR page,
+  // but GitHub navigation usually replaces the whole container anyway.
 });
 
-// Start observing the main body of the document for added/removed nodes
+// Only start observing and listening for keys if the script is running in a context
+// where it *could* eventually be on a PR page (i.e., anywhere on github.com now).
+// The internal checks `isPRPage()` handle the activation.
 observer.observe(document.body, { childList: true, subtree: true });
+document.addEventListener("keydown", handleKeyDown);

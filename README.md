@@ -13,6 +13,7 @@ _Button state after successful copy:_
 
 - Adds a "Copy as Markdown" button to the header actions on GitHub PR pages (`https://github.com/*/*/pull/*`).
 - Allows copying the PR diff using a keyboard shortcut: `Cmd+C` + `Cmd+C` (or `Ctrl+C` + `Ctrl+C` on Windows/Linux).
+- NEW: Copy all review dog errors using `Cmd+Shift+K` (or `Ctrl+Shift+K` on Windows/Linux).
 - Fetches the `.diff` version of the PR.
 - Copies the content to the clipboard.
 - Handles GitHub's dynamic page navigation.
@@ -33,7 +34,14 @@ To install this extension locally for development or testing:
 
 ## Usage
 
+### Copy PR Diff
 - **Button:** Navigate to a GitHub PR page. Click the "Copy as Markdown" button in the header actions area.
 - **Keyboard Shortcut:** On a GitHub PR page, ensure no text is selected, then quickly press `Cmd+C` twice (or `Ctrl+C` twice).
 
 The button text will change to "Copying..." and then "Copied!" upon success. Paste the content into any text editor that supports Markdown.
+
+### Copy Review Dog Errors
+- **Keyboard Shortcut:** On a GitHub PR page, press `Cmd+Shift+K` (or `Ctrl+Shift+K` on Windows/Linux).
+- This will scan the page for all review dog error comments and copy them as formatted markdown.
+- A green notification will appear showing the number of errors copied.
+- The copied format includes the file name, ESLint rule, and error message for each error.
